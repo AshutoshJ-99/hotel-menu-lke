@@ -1,0 +1,53 @@
+name: LKE Hotel Menu Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/hotel-menu:latest
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # ---- Build & push Docker image to Docker Hub ----
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE_NAME }}
+
+      # ---- Setup kubectl with our LKE kubeconfig ----
+      - name: Set up kubeconfig
+        run: |
+          echo "${KUBE_CONFIG_DATA}" | base64 -d > $HOME/.kube/config
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+
+      - name: Show Kubernetes context (debug)
+        run: |
+          kubectl config get-contexts
+          kubectl get nodes
+
+      # ---- Deploy (zero-downtime rolling restart) ----
+      - name: Apply manifests (just to be sure everything exists)
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+
+      - name: Rolling restart deployment
+        run: |
+          kubectl rollout restart deployment hotel-menu-deployment
+          kubectl rollout status deployment hotel-menu-deployment --timeout=120s
