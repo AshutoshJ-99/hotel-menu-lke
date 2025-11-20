@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hotel-menu-service
+  labels:
+    app: hotel-menu
+spec:
+  type: LoadBalancer
+  selector:
+    app: hotel-menu
+  ports:
+    - port: 80
+      targetPort: 80
