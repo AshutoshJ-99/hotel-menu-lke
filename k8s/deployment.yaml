@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: hotel-menu
-          image: YOUR_DOCKERHUB_USERNAME/hotel-menu:latest
+          image: ashu271999/hotel-menu:latest
           ports:
             - containerPort: 80
           imagePullPolicy: Always
